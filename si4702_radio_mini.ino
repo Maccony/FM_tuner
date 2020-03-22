@@ -1,9 +1,9 @@
 #include <Wire.h>
 
-const int resetPin = 2; //D2 (Arduino) - RST (Si4703)
-const int address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
+const byte resetPin = 2; //D2 (Arduino) - RST (Si4703)
+const byte address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
 
-byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит)
+byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит => 2 байт)
 
 void setup(){
     Wire.begin(); //Инициализация библиотеки Wire и подключение контроллера к шине I2C в качестве мастера
