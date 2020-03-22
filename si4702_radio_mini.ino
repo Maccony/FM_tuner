@@ -1,5 +1,6 @@
 #include <Wire.h>
 
+// управляется порт ввода-вывода общего назначения тремя регистрами (DDRB, PINB, PORTB)
 const byte buttonPin = 12; //D12 PB4(12pin)
 const byte resetPin = 11; //D11 PB3(11pin) (Arduino) - RST (Si4703) 
 const byte address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
