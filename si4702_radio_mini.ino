@@ -6,7 +6,7 @@ const byte resetPin = 11; //D9 PB1(9pin) (Arduino) - RST (Si4703)
 const byte address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
 
 byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит => 2 байт)
-unsignet long myTimer500, myTimer110, myTimer60; // создаем переменную для таймера (переполнение таймера через 49.7 суток)
+unsignet long myTime; // создаем переменную для таймера (переполнение таймера через 49.7 суток)
 
 void setup(){
     Wire.begin(); //Инициализация библиотеки Wire и подключение контроллера к шине I2C в качестве мастера
@@ -15,8 +15,8 @@ void setup(){
 	func_Read_Regs(); //считываем регистры si4703
 	massiv_reg[26] |= (1<<7);//запуск внутреннего генератора, включение бита XOSCEN (бит 26).
 	func_Writ_Regs();//записываем регистры
-	if (millis() - myTimer500 >= 500) {   // таймер на 500 мс (2 раза в сек)
-    		myTimer500 = millis();
+	if (millis() - myTimer >= 500) {   // таймер на 500 мс (2 раза в сек)
+    		myTimer = millis();
 	}
 	//delay(500);
 	//рекомендуемая минимальная задержка для стабилизации внутреннего генератора
@@ -25,8 +25,8 @@ void setup(){
 	massiv_reg[16] = 0x40;//регистр 0х02 (старший байт) бит 14 -> DMUTE = 1 (Mute disable)
 	massiv_reg[17] = 0x01;//регистр 0х02 (младший байт) бит 1 -> ENABLE = 1 (Powerup Enable)
 	func_Writ_Regs();//записываем регистры
-	if (millis() - myTimer110 >= 110) {   // таймер на 110 мс
-    		myTimer110 = millis();
+	if (millis() - myTimer >= 110) {   // таймер на 110 мс
+    		myTimer = millis();
 	}
 	//delay(110);
 	//рекомендуемая минимальная задержка для стабилизации
@@ -36,8 +36,8 @@ void setup(){
 	massiv_reg[23] = 0x1b;//регистр 0х05h младьший байт (11 байт массива)
 	//биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
 	func_Writ_Regs();//записываем регистры
-	if (millis() - myTimer110 >= 110) {   // таймер на 110 мс
-    		myTimer110 = millis();
+	if (millis() - myTimer >= 110) {   // таймер на 110 мс
+    		myTimer = millis();
 	}	
 	//delay(110);
 	//рекомендуемая минимальная задержка для выполнения установок
@@ -54,8 +54,8 @@ void gotoChannel(int newChannel){
 	massiv_reg[19] = newChannel;//регистр 0х03h младьший байт (7 байт массива), CHANNEL
 	func_Writ_Regs();//записываем регистры
    	//These steps come from AN230 page 20 rev 0.5
-	if (millis() - myTimer60 >= 60) {   // таймер на 60 мс
-    		myTimer60 = millis();
+	if (millis() - myTimer >= 60) {   // таймер на 60 мс
+    		myTimer = millis();
 	}
     	//delay(60);
 	//рекомендуемая минимальная задержка для выполнения установок
