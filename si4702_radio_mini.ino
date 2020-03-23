@@ -2,11 +2,11 @@
 
 // управляется порт ввода-вывода общего назначения тремя регистрами (DDRB, PINB, PORTB)
 const byte buttonPin = 12; //D12 PB4(12pin)
-const byte resetPin = 11; //D9 PB1(9pin) (Arduino) - RST (Si4703) 
+const byte resetPin = 9; //D9 PB1(9pin) (Arduino) - RST (Si4703)
 const byte address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
 
 byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит => 2 байт)
-unsignet long myTime; // создаем переменную для таймера (переполнение таймера через 49.7 суток)
+unsigned long myTimer; // создаем переменную для таймера (переполнение таймера через 49.7 суток)
 
 void setup(){
     Wire.begin(); //Инициализация библиотеки Wire и подключение контроллера к шине I2C в качестве мастера
@@ -38,10 +38,10 @@ void setup(){
 	func_Writ_Regs();//записываем регистры
 	if (millis() - myTimer >= 110) {   // таймер на 110 мс
     		myTimer = millis();
-	}	
+	}
 	//delay(110);
 	//рекомендуемая минимальная задержка для выполнения установок
-	
+
 	gotoChannel(171);
 }
 
@@ -104,5 +104,3 @@ void func_Reset_si4703(void){
     digitalWrite(resetPin, HIGH); //возвратим Si4703 в исходное состояние, оставив SDIO=0 и SEN=1(с помощью встроенного резистора).
         delay(1); //дадим Si4703 время что бы выйти из сброса
 }
-
-
