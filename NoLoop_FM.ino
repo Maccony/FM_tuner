@@ -1,3 +1,4 @@
+#include <arduino.h>
 #include <Wire.h>
 
 const byte resetPin = 9; //D2 (Arduino) - RST (Si4703)
@@ -5,7 +6,7 @@ const byte address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
 
 byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит => 2 байта)
 
-void setup(){
+int main() {
     Wire.begin(); //Инициализация библиотеки Wire и подключение контроллера к шине I2C в качестве мастера
     func_Reset_si4703(); //сброс si4703 (теперь регистры доступны на запись и чтение)
 
@@ -28,11 +29,13 @@ void setup(){
     delay(110);//рекомендуемая минимальная задержка для выполнения установок
 
     gotoChannel(171);
-}
 
-void loop(){
+  // наш личный "setup"
+  for (;;) {
+    // наш личный "loop"
+  }
+  return 0;
 }
-
 void gotoChannel(int newChannel){
     func_Read_Regs();//считываем регистры si4703
     massiv_reg[18] = 0x80;//регистр 0х03h старший байт (6 байт массива), бит D15 -> TUNE = 1
