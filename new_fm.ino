@@ -1,7 +1,5 @@
 #include <Wire.h>
 
-const byte buttonPin = 12; //D12 - PB4 (Arduino) - RST (Si4703)
-const byte resetPin = 9; //D9 - PB1 (Arduino) - RST (Si4703)
 const byte address_SI4703 = 0x10; //I2C адрес (7-бит) Si4703
 
 byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит => 2 байта)
@@ -30,12 +28,14 @@ void setup(){
     func_Writ_Regs();//записываем регистры
     delay(110);//рекомендуемая минимальная задержка для выполнения установок
 
-    DDRB = DDRB | B0010000; // назначаем вывод PB4 входным INPUT (у остальных выводов значение не меняем)
+    //DDRB = DDRB | B0010000; // назначаем вывод PB4 входным INPUT (у остальных выводов значение не меняем)
+    DDRB &= ~(1 << 4); // назначаем вывод PB4 входным INPUT, установим PB4 в LOW.
 
     gotoChannel(171);
 }
 
 void loop(){
+    if(PINB & (1 << 4)) gotoChannel(23);
 }
 
 void gotoChannel(int newChannel){
