@@ -1,7 +1,7 @@
 #include <Wire.h>
 
 byte massiv_reg[32]; //Выделяем массив для 16 регистров (размер регистра 16 бит => 2 байта)
-byte massiv_FM[5] = {23, 139, 156, 171, 189};
+byte massiv_FM[6] = {23, 40, 142, 146, 156, 171};
 byte counter = 0;
 
 void setup(){
@@ -30,14 +30,15 @@ void setup(){
 
     //DDRB = DDRB | B0010000; // назначаем вывод PB4 входным INPUT (у остальных выводов значение не меняем)
     DDRB &= ~(1 << 4); // назначаем вывод PB4 входным INPUT, установим PB4 в LOW.
+    gotoChannel(massiv_FM[counter]);
 }
 
 void loop(){
     if(PINB & (1 << 4)) { //если на входе PB4 значение HIGH (кнопка нажата), то...
+        counter = counter + 1;
         gotoChannel(massiv_FM[counter]);
         delay(500);
         if(counter > 4)  counter = 0;
-        else counter = counter + 1;
     }
 }
 
