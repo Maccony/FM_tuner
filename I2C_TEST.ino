@@ -2,13 +2,15 @@
 //(PC5) A5 - SCLK
 //(PC4) A4 - SDIO
 #define address_SI4703 0x10
+#define START_TWSR 0x08
 
 void setup() {
   Serial.begin(9600); //устанавливаем последовательное соединение
 
+  TWBR=0x20; //скорость передачи (при 8 мГц получается 100 кГц)
   TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); // отправка "СТАРТ"
   while (!(TWCR & (1<<TWINT))); // ожидаем пока "СТАРТ" отправится
-  if ((TWSR & 0xF8) != START) Serial.println("START ERROR");
+  if ((TWSR & 0xF8) != START_TWSR) Serial.println("START ERROR");
   TWDR = address_SI4703;
   TWCR = (1<<TWINT)|(1<<TWEN); // передача адреса
   while (!(TWCR & (1<<TWINT))); // ожидание передачи адреса
