@@ -1,8 +1,9 @@
 // ARDUINO PB1 - Si4702 RST
 //(PC5) A5 - SCLK
 //(PC4) A4 - SDIO
-#define address_SI4703 0x10
+#define address_SI4703 0x08
 #define START_TWI 0x08
+byte data;
 
 void setup() {
   Serial.begin(9600); //устанавливаем последовательное соединение
@@ -25,6 +26,7 @@ void I2C_StartCondition(void) {
     TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); // отправка "СТАРТ"
     while(!(TWCR&(1<<TWINT)));  // ожидаем пока "СТАРТ" отправится
     if ((TWSR & 0xF8) != START_TWI) Serial.println("ERROR START");
+    Serial.println("START OK");
 }
 
 void I2C_StopCondition(void) {
@@ -33,14 +35,18 @@ void I2C_StopCondition(void) {
 
 void I2C_SRA_R(void) { // выдаем на шину пакет SLA-R
     TWDR = (address_SI4703<<1)|1;
+    Serial.println(TWDR, HEX);
     TWCR = (1<<TWINT)|(1<<TWEN);
     while(!(TWCR & (1<<TWINT)));
+    Serial.println("SLA_R OK");
 }
 
 void I2C_READ(void) { /*считываем данные с подтверждением*/
+    Serial.println("DATA_START");
     TWCR = (1<<TWINT)|(1<<TWEA)|(1<<TWEN);
     while(!(TWCR & (1<<TWINT)));
+    Serial.println("DATA_NEXT");
     data = TWDR;
-    Serial.println(data , HEX); // отображаем полученый байт
+    Serial.println(data, HEX); // отображаем полученый байт
     delay(5000);
 }
