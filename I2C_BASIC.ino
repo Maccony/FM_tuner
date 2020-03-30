@@ -1,53 +1,40 @@
 // ARDUINO PB1 - Si4702 RST
 //(PC5) A5 - SCLK
 //(PC4) A4 - SDIO
-#define address_SI4703 0x10
-#define START_TWI 0x08
-byte data;
+byte registers_FM[32]; // выделяем массив для 16 регистров (размер регистра 16 бит => 2 байт)
 
 void setup() {
   Serial.begin(9600); //устанавливаем последовательное соединение
-  DDRB |= (1 << DDB1); // через регистр направления DDRB назначаем вывод PB1 выходным (OUTPUT), ставим бит №1 в HIGH
-  PORTB |= (1 << PORTB1); // через регистр данных порта PORTB устанавливаем на выводе PB1 значение HIGH
-  delay(1); //дадим Si4703 время что бы выйти из сброса
-  TWBR=0x20; //скорость передачи (при 8 мГц получается 100 кГц)
+  reset_Si4703(); // сброс Si4703;
+  TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
 }
 void loop() {
-    I2C_StartCondition(); // отправляем в шину "СТАРТ"
-    Serial.println(TWSR, HEX); // отображаем статусный регистр TWSR
-    delay(1000);
-    I2C_SRA_R();
-    Serial.println(TWSR, HEX); // отображаем статусный регистр TWSR
-    delay(1000);
-    I2C_READ();
-    I2C_StopCondition();
-    delay(1000);
+    send_START(); // отправляем в шину "СТАРТ"
+    send_SLA_X(1); // отправляем в шину SLA(адрес ведомого) и 1-Read или 0-Write
+    for(byte count=0; count<32; count++) {
+        busTWI_READ();
+        registers_FM[count] = TWDR;
+    }
+    send_STOP();
+    for(byte count=0; count<32; count++) {Serial.println(registers_FM[count], HEX);}
 }
 
-void I2C_StartCondition(void) {
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); // отправка "СТАРТ"
-    while(!(TWCR&(1<<TWINT)));  // ожидаем пока "СТАРТ" отправится
-    if ((TWSR & 0xF8) != START_TWI) Serial.println("ERROR START");
-    Serial.print("START OK - ");
-}
+void reset_Si4703(void) {
+    DDRB |= (1 << DDB1); // через регистр направления DDRB назначаем вывод PB1 выходным (OUTPUT), ставим бит №1 в HIGH
+    PORTB |= (1 << PORTB1); // через регистр данных порта PORTB устанавливаем на выводе PB1 значение HIGH
+    delay(1);} // время что бы выйти из сброса
 
-void I2C_StopCondition(void) {
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);
-}
+void send_START(void) {
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTA); // сбрасываем бит прерывания TWINT, активируем шину TWI установкой TWEN, формируем "СТАРТ" установив TWSTA
+    while(!(TWCR&(1<<TWINT)));}  // ожидаем пока "СТАРТ" отправится
 
-void I2C_SRA_R(void) { // выдаем на шину пакет SLA-R
-    TWDR = (address_SI4703<<1)|1;
-    Serial.println(TWDR, HEX);
+void send_STOP(void) {TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
+
+void send_SLA_X(byte orRW) { // выдаем на шину пакет SLA
+    TWDR = (0x10<<1)|orRW; // в TWDR загружаем 0х10 - адрес Si7703
     TWCR = (1<<TWINT)|(1<<TWEN);
-    while(!(TWCR & (1<<TWINT)));
-    Serial.print("SLA_R OK - ");
-}
+    while(!(TWCR & (1<<TWINT)));}
 
-void I2C_READ(void) { /*считываем данные с подтверждением*/
-    TWCR = (1<<TWINT)|(1<<TWEA)|(1<<TWEN);
-    while(!(TWCR & (1<<TWINT)));
-    Serial.print("DATA - ");
-    data = TWDR;
-    Serial.println(data, HEX); // отображаем полученый байт
-    delay(5000);
-}
+void busTWI_READ(void) { /*считываем данные с подтверждением*/
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // выставив TWEA ждем подтверждение (ACK) от ведомого
+    while(!(TWCR & (1<<TWINT)));}
