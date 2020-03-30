@@ -36,7 +36,8 @@ void send_SLA_X(byte orRW) { // выдаем на шину пакет SLA
 
 void read_DATA(void) { /*считываем данные с подтверждением*/
     TWCR |= (1<<TWEA);
-    bus_READY();}
+    TWCR |= (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT, активируем шину TWI установкой TWEN
+    while(!(TWCR&(1<<TWINT)));}
 
 void bus_READY(void) {
     TWCR |= (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT, активируем шину TWI установкой TWEN
