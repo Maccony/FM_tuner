@@ -21,20 +21,22 @@ void loop() {
 }
 
 void send_START(void) {
-    TWCR |= (1<<TWSTA); // формируем "СТАРТ" установив TWSTA
-    TWCR |= (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT, активируем шину TWI установкой TWEN
-    while(!(TWCR&(1<<TWINT)));}  // ожидаем пока "СТАРТ" отправится
-
-void send_STOP(void) {TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
+    TWCR = (1<<TWSTA); // формируем "СТАРТ" установив TWSTA
+    bus_READY();}  // ожидаем пока "СТАРТ" отправится
 
 void send_SLA_X(byte orRW) { // выдаем на шину пакет SLA
     TWDR = (0x10<<1)|orRW; // в TWDR загружаем 0х10 - адрес Si7703
-    TWCR |= (1<<TWINT)|(1<<TWEN);
-    while(!(TWCR & (1<<TWINT)));} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
+    bus_READY();} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
 
 void busTWI_READ(void) { // считываем данные с подтверждением
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // выставив TWEA ждем подтверждение (ACK) от ведомого
-    while(!(TWCR & (1<<TWINT)));}
+    TWCR = (1<<TWEA);
+    bus_READY();}
+
+void bus_READY(void) {
+    TWCR |= (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
+    while(!(TWCR & (1<<TWINT)));} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
+
+void send_STOP(void) {TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
 
 void reset_Si4703(void) {
     DDRB |= (1 << DDB1); // через регистр направления DDRB назначаем вывод PB1 выходным (OUTPUT), ставим бит №1 в HIGH
