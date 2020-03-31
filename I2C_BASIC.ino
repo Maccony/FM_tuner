@@ -21,8 +21,8 @@ void loop() {
 }
 
 void send_START(void) {
-    TWCR |= (1<<TWSTA);
-    TWCR |= (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT, активируем шину TWI установкой TWEN, формируем "СТАРТ" установив TWSTA
+    TWCR |= (1<<TWSTA); // формируем "СТАРТ" установив TWSTA
+    TWCR |= (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT, активируем шину TWI установкой TWEN
     while(!(TWCR&(1<<TWINT)));}  // ожидаем пока "СТАРТ" отправится
 
 void send_STOP(void) {TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
