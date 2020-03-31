@@ -1,8 +1,6 @@
 // ARDUINO PB1 - Si4702 RST
 //(PC5) A5 - SCLK
 //(PC4) A4 - SDIO
-#define address_SI4703 0x10
-#define START_TWI 0x08
 byte registers_FM[32];
 
 void setup() {
