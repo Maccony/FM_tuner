@@ -15,7 +15,7 @@ void loop() {
         busTWI_READ();
         registers_FM[count] = TWDR;}
     send_STOP();
-    for(byte count=0; count<32; count++) {Serial.println(registers_FM[count], HEX);}
+    for(byte count=0; count<32; count++) Serial.println(registers_FM[count], HEX);
 }
 
 void send_START(void) { 
