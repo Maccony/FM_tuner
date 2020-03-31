@@ -32,7 +32,7 @@ void send_SLA_X(byte orRW) { // выдаем на шину пакет SLA
     TWCR |= (1<<TWINT)|(1<<TWEN);
     while(!(TWCR & (1<<TWINT)));} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
 
-void busTWI_READ(void) { /*считываем данные с подтверждением*/
+void busTWI_READ(void) { // считываем данные с подтверждением
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // выставив TWEA ждем подтверждение (ACK) от ведомого
     while(!(TWCR & (1<<TWINT)));}
 
