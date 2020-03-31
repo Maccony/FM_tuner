@@ -30,7 +30,7 @@ void send_STOP(void) {TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формиру
 void send_SLA_X(byte orRW) { // выдаем на шину пакет SLA
     TWDR = (0x10<<1)|orRW; // в TWDR загружаем 0х10 - адрес Si7703
     TWCR |= (1<<TWINT)|(1<<TWEN);
-    while(!(TWCR & (1<<TWINT)));}
+    while(!(TWCR & (1<<TWINT)));} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
 
 void busTWI_READ(void) { /*считываем данные с подтверждением*/
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // выставив TWEA ждем подтверждение (ACK) от ведомого
