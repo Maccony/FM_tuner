@@ -1,11 +1,10 @@
 // ARDUINO PB1 - Si4702 RST
 //(PC5) A5 - SCLK
 //(PC4) A4 - SDIO
-byte registers_FM[32];
+byte registers_FM[28];
 #define XOSCEN 7
 
 void setup() {
-  Serial.begin(9600); //устанавливаем последовательное соединение
   reset_Si4703(); // сброс Si4703;
   TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
   readRegs();
@@ -25,8 +24,6 @@ void setup() {
   delay(110);
 
   gotoChannel(189); //171, 181,139
-
-  for(byte count=0; count<28; count++) Serial.println(registers_FM[count], HEX);
 }
 void loop() {}
 
@@ -65,8 +62,7 @@ void readRegs(void) {
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
         while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
         registers_FM[count] = TWDR;}
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); // формируем "СТОП" установив TWSTO
-}
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
 
 //запись в si4703 начинается с регистра 0x02. Но мы не должны писать в регистры 0x08 и 0x09
 void writeRegs(void) {
@@ -78,9 +74,7 @@ void writeRegs(void) {
         TWDR = registers_FM[count];
         TWCR = (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
         while(!(TWCR & (1<<TWINT)));} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); // формируем "СТОП" установив TWSTO
-    Serial.println("WRITE OK");
-}
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
 
 void reset_Si4703(void) {
     DDRB |= (1 << DDB1); // через регистр направления DDRB назначаем вывод PB1 выходным (OUTPUT), ставим бит №1 в HIGH
