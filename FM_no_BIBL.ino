@@ -1,14 +1,11 @@
-// ARDUINO PB1 - Si4702 RST
-//(PC5) A5 - SCLK
-//(PC4) A4 - SDIO
+// ARDUINO PB1 - Si4702 RST, (PC5) A5 - SCLK, (PC4) A4 - SDIO
 byte registers_FM[28];
-#define XOSCEN 7
 
 void setup() {
   reset_Si4703(); // сброс Si4703;
   TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
   readRegs();
-  registers_FM[26] |= (1<<XOSCEN); //запуск внутреннего генератора, включение бита XOSCEN (бит 26)
+  registers_FM[26] |= (1<<7); //запуск внутреннего генератора, включение бита XOSCEN (бит 26)
   writeRegs();
   delay(500);
   readRegs();
@@ -53,21 +50,19 @@ void gotoChannel(int newChannel){
 }
 
 void readRegs(void) {
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTA); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTA); // отправляем условие "СТАРТ" в шину TWI (регистр TWI в ATmega328)
     while(!(TWCR & (1<<TWINT)));  // ожидаем пока "СТАРТ" отправится
-    TWDR = 0B00100001; // в TWDR загружаем 0х10 - адрес Si7703
+    TWDR = 0B00100001; // в TWDR загружаем 0х10 - адрес Si7703 и флаг чтения (1)
     TWCR = (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
     while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
     for(byte count = 0; count < 28; count++) {
-        TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
-        while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
-        registers_FM[count] = TWDR;}
+        TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // активируем TWEA чтоб подтвердить прием байта
+        while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно
+        registers_FM[count] = TWDR;} // сохраняем принятый байт в массив
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
 
-//запись в si4703 начинается с регистра 0x02. Но мы не должны писать в регистры 0x08 и 0x09
-void writeRegs(void) {
-    // формируем "СТАРТ" установив TWSTA
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTA); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
+void writeRegs(void) { //запись в si4703 начинается с регистра 0x02. Но нет записи в регистры 0x08 и 0x09
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTA); // формируем "СТАРТ" установив TWSTA
     while(!(TWCR & (1<<TWINT)));  // ожидаем пока "СТАРТ" отправится
     registers_FM[15] = 0B00100000; // в TWDR загружаем 0х10 - адрес Si7703 и флаг записи (0) 10000|0
     for(byte count = 15; count < 28; count++) {
