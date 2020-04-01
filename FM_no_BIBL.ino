@@ -23,7 +23,7 @@ void setup() {
   writeRegs();
   delay(110);
 
-  gotoChannel(189); //171, 181,139
+  gotoChannel(171); //171, 181, 139, 189
 }
 void loop() {}
 
