@@ -1,8 +1,8 @@
 // ARDUINO PB1 - Si4702 RST, (PC5) A5 - SCLK, (PC4) A4 - SDIO
-byte registers_FM[28];
+byte registers_FM[28]; // задаем переменную для считывания регистров Si4703
 
 void setup() {
-  reset_Si4703(); // сброс Si4703;
+  reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
   TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
   readRegs();
   registers_FM[26] |= (1<<7); //запуск внутреннего генератора, включение бита XOSCEN (бит 26)
@@ -24,8 +24,8 @@ void setup() {
 }
 void loop() {}
 
-void gotoChannel(int newChannel){
-	readRegs();//считываем регистры si4703
+void gotoChannel(byte newChannel){
+	readRegs(); //считываем регистры si4703
 	registers_FM[18] = 0x80;//регистр 0х03h старший байт (6 байт массива), бит D15 -> TUNE = 1
 	registers_FM[19] = newChannel;//регистр 0х03h младьший байт (7 байт массива), CHANNEL
 	writeRegs();//записываем регистры
@@ -35,18 +35,12 @@ void gotoChannel(int newChannel){
     //когда настройка на волну закончится, бит STC в регистре 0Ah установится в 1
     while(1) { //бесконечный цикл, прерывание через break
         readRegs();
-        if( (registers_FM[0] & (1<<6)) != 0) break; //Tuning complete!
-    }
-
-    readRegs();
+        if( (registers_FM[0] & (1<<6)) != 0) break;} //Tuning complete!
     registers_FM[18] = 0; //очистим вит TUNE в регистре 03h когда частота настроена
     writeRegs();
-
-    //Wait for the si4703 to clear the STC as well
-    while(1) {
+    while(1) { //Wait for the si4703 to clear the STC as well
         readRegs();
-        if( (registers_FM[18] & (1<<6)) == 0) break; //Tuning complete!
-    }
+        if( (registers_FM[18] & (1<<6)) == 0) break;} //Tuning complete!
 }
 
 void readRegs(void) {
