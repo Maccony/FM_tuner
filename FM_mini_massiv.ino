@@ -5,17 +5,17 @@ void setup() {
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
     TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
     readRegs();
-    registers_FM[10] |= (1<<7); //запуск внутреннего генератора, включение бита XOSCEN (бит 26)
+    registers_FM[10] |= (1<<7); //запуск внутреннего генератора, включение бита XOSCEN (регистр 0х07h Test1)
     writeRegs();
     delay(500);
     readRegs();
-    registers_FM[0] = 0x40;//регистр 0х02 (старший байт) бит 14 -> DMUTE = 1 (Mute disable)
-    registers_FM[1] = 0x01;//регистр 0х02 (младший байт) бит 1 -> ENABLE = 1 (Powerup Enable)
+    registers_FM[0] = 0x40; //регистр 0х02 (старший байт) бит 14 -> DMUTE = 1 (Mute disable)
+    registers_FM[1] = 0x01; //регистр 0х02 (младший байт) бит 1 -> ENABLE = 1 (Powerup Enable)
     writeRegs();
     delay(110);
     readRegs();
-    registers_FM[4] |= (1<<3);//регистр 0х04h - старший байт (8 байт массива), бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
-    registers_FM[7] = 0x1b;//регистр 0х05h младьший байт (11 байт массива)
+    registers_FM[4] |= (1<<3); //регистр 0х04h - старший байт (8 байт массива), бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
+    registers_FM[7] = 0x1b; //регистр 0х05h младьший байт (11 байт массива)
     //биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
     writeRegs();
     delay(110);
@@ -32,8 +32,8 @@ void gotoChannel(byte newChannel){
    	//These steps come from AN230 page 20 rev 0.5
 	delay(60); //рекомендуемая минимальная задержка для выполнения установок
 
-    //когда настройка на волну закончится, бит STC в регистре 0Ah установится в 1
-    while(1) { //бесконечный цикл, прерывание через break
+    //когда настройка на волну закончится, в регистре 0Ah, бит STC установится в 1
+    while(1) { // бесконечный цикл, прерывание через break
         readRegs();
         if( (registers_FM[0] & (1<<6)) != 0) break;} //Tuning complete!
     registers_FM[2] = 0; //очистим вит TUNE в регистре 03h когда частота настроена
@@ -53,16 +53,16 @@ void readRegs(void) {
     for(byte count = 0; count < 28; count++) {
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // активируем TWEA чтоб подтвердить прием байта
         while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно
-        if(count > 15) registers_FM[count - 16] = TWDR;} // сохраняем принятый байт в массив
+        if(count > 15) registers_FM[count - 16] = TWDR;} // в массив сохраняем только байты регистров 0х02 - 0х07
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
 //запись в si4703 начинается с регистра 0x02. Но мы не должны писать в регистры 0x08 и 0x09
-void writeRegs(void) { //запись в si4703 начинается с регистра 0x02. Но нет записи в регистры 0x08 и 0x09
+void writeRegs(void) {
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTA); // формируем "СТАРТ" установив TWSTA
     while(!(TWCR & (1<<TWINT)));  // ожидаем пока "СТАРТ" отправится
     TWDR = 0B00100000; // в TWDR загружаем 0х10 - адрес Si7703 и флаг записи (0) 10000|0
     TWCR = (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
-    while(!(TWCR & (1<<TWINT)));
-    for(byte count = 0; count < 12; count++) {
+    while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
+    for(byte count = 0; count < 12; count++) { // запись в si4703 начинается с регистра 0x02. Но нет записи в регистры 0x08 и 0x09
         TWDR = registers_FM[count];
         TWCR = (1<<TWINT)|(1<<TWEN); // сбрасываем бит прерывания TWINT (ставим в 1), активируем шину TWI установкой TWEN
         while(!(TWCR & (1<<TWINT)));} // ожидаем когда TWINT обнулится аппаратно (закончится выполнение операции отправки SLA)
