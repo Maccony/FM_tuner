@@ -62,10 +62,20 @@ void readRegs(void) {
     for(byte count = 0; count < 28; count++) {
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // активируем TWEA чтоб подтвердить прием байта
         while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно
+        switch (count) {
+            case 0: high0A_Status = TWDR; break;
+            case 16: high02_Power = TWDR; break;
+            case 17: low02_Power = TWDR; break;
+            case 18: high03_Channel = TWDR; break;
+            case 19: low03_Channel = TWDR; break;
+            case 20: high04_System1 = TWDR; break;
+            case 23: low05_System2 = TWDR; break;
+            case 26: high07_Test = TWDR; break;
+        }
         if(count == 0) statusRSSI = TWDR;
         if(count > 15) registers_FM[count - 16] = TWDR;} // в массив сохраняем только байты регистров 0х02 - 0х07
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); // формируем "СТОП" установив TWSTO
-    
+
 }
 //запись в si4703 начинается с регистра 0x02. Но мы не должны писать в регистры 0x08 и 0x09
 void writeRegs(void) {
