@@ -6,6 +6,8 @@ byte channels[12] = {24, 28, 36, 40, 142, 151, 156, 163, 171, 185, 196, 200};
 byte number = 4;
 
 void setup() {
+    Serial.begin(9600);
+    Serial.println(PORTB);
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
     TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
     readRegs();
@@ -18,14 +20,15 @@ void setup() {
     //регистр 0х04h - старший байт, бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
     //регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
     updateRegs(4, 0x08, 7, 0x1b, 110);
-    tuneChannel(channels[number]);
+    //tuneChannel(channels[number]);
     //attachInterrupt(0, buttonPrint, RISING);
 }
 void loop() {
     //if((PINB & (1 << PINB4)) != 0) { //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
     //    number = number + 1;
     //tuneChannel(channels[number]);}
-    delay(500);
+    Serial.println(PORTB);
+    delay(1000);
 }
 
 void updateRegs(byte numberByte1, byte valueByte1, byte numberByte2, byte valueByte2, byte delayByte) {
@@ -44,7 +47,7 @@ void tuneChannel(byte newChannel) {
     //когда настройка на волну закончится, в регистре 0Ah, бит STC установится в 1
     while(1) { // бесконечный цикл, прерывание через break
         readRegs();
-        if( (statusRSSI & (1<<6)) != 0) break;} //Tuning complete!
+        if((statusRSSI & (1<<6)) != 0) break;} //Tuning complete!
 
     registers_FM[2] &= ~(1<<7); //очистим бит TUNE в регистре 03h когда частота настроена
     writeRegs();
