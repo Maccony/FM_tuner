@@ -8,27 +8,24 @@ byte number = 4;
 void setup() {
     Serial.begin(9600);
     Serial.println(PORTB);
-    DDRD &= ~(1 << DDD2); // через регистр направления DDRB назначаем вывод PB1 входным (INPUT), ставим бит №2 в LOW
+    DDRD &= ~(1 << DDD2); // через регистр направления DDRB назначаем вывод PD2 входным (INPUT), ставим бит №2 в LOW
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
     TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
     readRegs();
     registers_FM[10] |= (1<<7); //запуск внутреннего генератора, включение бита 15 -> XOSCEN (регистр 0х07h Test1)
     writeRegs();
     delay(500);
-    //регистр 0х02 (старший байт) бит 14 -> DMUTE = 1 (Mute disable)
-    //регистр 0х02 (младший байт) бит 0 -> ENABLE = 1 (Powerup Enable)
+    //регистр 0х02 (старший байт) бит 14 -> DMUTE=1 (Mute disable)
+    //регистр 0х02 (младший байт) бит 0 -> ENABLE=1 (Powerup Enable)
     updateRegs(0, 0x40, 1, 0x01, 110);
     //регистр 0х04h - старший байт, бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
     //регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
     updateRegs(4, 0x08, 7, 0x1b, 110);
     //tuneChannel(channels[number]);
-    attachInterrupt(0, buttonPrint, RISING);
+    //attachInterrupt(0, buttonPrint, RISING);
 }
 void loop() {
-    //if((PINB & (1 << PINB4)) != 0) { //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
-    //    number = number + 1;
-    //tuneChannel(channels[number]);}
-    Serial.println(PORTB);
+    if((PIND & (1 << PIND2)) != 0) tuneChannel(); //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
     delay(1000);
 }
 
