@@ -7,7 +7,6 @@ byte number = 4;
 
 void setup() {
     Serial.begin(9600);
-    Serial.println(PORTB);
     DDRD &= ~(1 << DDD2); // через регистр направления DDRB назначаем вывод PD2 входным (INPUT), ставим бит №2 в LOW
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
     TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
@@ -21,17 +20,21 @@ void setup() {
     //регистр 0х04h - старший байт, бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
     //регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
     updateRegs(4, 0x08, 7, 0x1b, 110);
-    //tuneChannel(channels[number]);
-    //attachInterrupt(0, buttonPrint, RISING);
+    //регистр 0х04h - старший байт, бит D14 -> STCIEN=1 (interrupt).
+    //регистр 0х05h младьший байт, биты 3:2 -> GPIO2 = [01]
+    updateRegs(4, 0x48, 5, 0x04, 110);
+    Serial.println(PORTD);
+    tuneChannel();
+    attachInterrupt(0, buttonPrint, FALLING);
 }
 void loop() {
-    if((PIND & (1 << PIND2)) != 0) tuneChannel(); //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
+    //if((PIND & (1 << PIND4)) != 0) tuneChannel(); //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
     delay(1000);
 }
 
-void buttonPrint() {
-    Serial.println("BUTTON PUSH");
+void buttonPrint(void) {
     Serial.println(PORTD);
+    Serial.println("BUTTON PUSH");
     delay(500);
 }
 
@@ -43,7 +46,7 @@ void updateRegs(byte numberByte1, byte valueByte1, byte numberByte2, byte valueB
     delay(delayByte);
 }
 
-void tuneChannel() {
+void tuneChannel(void) {
     // регистр 0х03h старший байт, бит D15 -> TUNE = 1
     // регистр 0х03h младьший байт, CHANNEL = нужный канал
     updateRegs(2, 0x80, 3, channels[number], 60);
@@ -52,6 +55,9 @@ void tuneChannel() {
     while(1) { // бесконечный цикл, прерывание через break
         readRegs();
         if((statusRSSI & (1<<6)) != 0) break;} //Tuning complete!
+    //if((PIND & (1 << PIND2)) != 0) buttonPrint();
+    //Serial.println(PORTD);
+    //Serial.println("RETURN");
 
     registers_FM[2] &= ~(1<<7); //очистим бит TUNE в регистре 03h когда частота настроена
     writeRegs();
