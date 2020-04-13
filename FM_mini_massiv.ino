@@ -8,6 +8,7 @@ byte number = 4;
 void setup() {
     Serial.begin(9600);
     Serial.println(PORTB);
+    DDRD &= ~(1 << DDD2); // через регистр направления DDRB назначаем вывод PB1 входным (INPUT), ставим бит №2 в LOW
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
     TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
     readRegs();
@@ -21,7 +22,7 @@ void setup() {
     //регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
     updateRegs(4, 0x08, 7, 0x1b, 110);
     //tuneChannel(channels[number]);
-    //attachInterrupt(0, buttonPrint, RISING);
+    attachInterrupt(0, buttonPrint, RISING);
 }
 void loop() {
     //if((PINB & (1 << PINB4)) != 0) { //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
@@ -29,6 +30,12 @@ void loop() {
     //tuneChannel(channels[number]);}
     Serial.println(PORTB);
     delay(1000);
+}
+
+void buttonPrint() {
+    Serial.println("BUTTON PUSH");
+    Serial.println(PORTD);
+    delay(500);
 }
 
 void updateRegs(byte numberByte1, byte valueByte1, byte numberByte2, byte valueByte2, byte delayByte) {
@@ -39,10 +46,10 @@ void updateRegs(byte numberByte1, byte valueByte1, byte numberByte2, byte valueB
     delay(delayByte);
 }
 
-void tuneChannel(byte newChannel) {
+void tuneChannel() {
     // регистр 0х03h старший байт, бит D15 -> TUNE = 1
     // регистр 0х03h младьший байт, CHANNEL = нужный канал
-    updateRegs(2, 0x80, 3, newChannel, 60);
+    updateRegs(2, 0x80, 3, channels[number], 60);
 
     //когда настройка на волну закончится, в регистре 0Ah, бит STC установится в 1
     while(1) { // бесконечный цикл, прерывание через break
@@ -54,6 +61,7 @@ void tuneChannel(byte newChannel) {
     while(1) { //Wait for the si4703 to clear the STC as well
         readRegs();
         if((statusRSSI & (1<<6)) == 0) break;} // Tuning complete!
+    number = number + 1;
 }
 
 //ФУНКЦИЯ ЧТЕНИЯ ИЗ РЕГИСТРОВ (считывает весь набор регистров управления Si4703 (от 0x00 до 0x0F)
