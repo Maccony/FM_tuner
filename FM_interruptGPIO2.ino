@@ -2,32 +2,26 @@
 // ARDUINO PB1 - Si4702 RST, (PC5) A5 - SCLK, (PC4) A4 - SDIO
 // 24(звезда), 28(комеди радио), 36(дорожное радио), 40(комс. правда), 142(вести фм), 151(новое), 156(искатель), 163(европа), 171(ретро), 185(юмор), 196(авторадио), 200(дача)
 byte registers_FM[12]; // задаем массив для считывания регистров Si4703
-byte statusRSSI;
-byte channels[12] = {24, 28, 36, 40, 142, 151, 156, 163, 171, 185, 196, 200};
+const byte channels[] = {24, 28, 36, 40, 142, 151, 156, 163, 171, 185, 196, 200};
 byte number = 0;
 
 void setup() {
-    DDRD &= ~(1 << DDD2); // через регистр направления DDRB назначаем вывод PD2 входным (INPUT), ставим бит №2 в LOW
+    DDRD &= ~(1 << DDD2); // через регистр направления DDRB назначаем вывод PD2 входным (INPUT), ставим бит №2 в LOW, для прерывания GPIO2 (STC)
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
-    TWBR=0x20; // задаем скорость передачи (при 8 мГц получается 100 кГц)
+    TWBR=0x20; // задаем скорость передачи TWI (при 8 мГц получается 100 кГц)
     readRegs();
-    registers_FM[10] |= (1<<7); //запуск внутреннего генератора, включение бита 15 -> XOSCEN (регистр 0х07h Test1)
+    registers_FM[10] |= (1<<7); // запуск внутреннего генератора, включение бита 15 -> XOSCEN (регистр 0х07h Test1)
     writeRegs();
     delay(500);
     updateRegs(0, 0x40, 1, 0x01, 110); // регистр 0х02 бит D14 -> DMUTE=1 (Mute disable), бит D0 -> ENABLE=1 (Powerup Enable)
-    //регистр 0х04h - старший байт, бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
-    //регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
-    updateRegs(4, 0x08, 7, 0x1b, 110);
-    //регистр 0х04h - старший байт, бит D14 -> STCIEN=1 (interrupt).
-    //регистр 0х05h младьший байт, биты 3:2 -> GPIO2 = [01]
-    updateRegs(4, 0x48, 5, 0x04, 110);
-    tuneChannel();
-    attachInterrupt(0, interruptTune, FALLING);
-}
+    // регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
+    updateRegs(4, 0x08, 7, 0x1b, 110); // регистр 0х04h бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
+    updateRegs(4, 0x48, 5, 0x04, 110); // регистр 0х04h бит D14 -> STCIEN=1 (interrupt), регистр 0х05h младьший байт, биты 3:2 -> GPIO2 = [01]
+    attachInterrupt(0, interruptTune, FALLING);} // прерывание GPIO2 от флага STC
+
 void loop() {
-    if((PIND & (1 << PIND4)) != 0) tuneChannel(); //если на входе PB4 значение HIGH (кнопка нажата), то... = 16
-    delay(500);
-}
+    if((PIND & (1 << PIND4)) != 0) tuneChannel(); // если на входе PB4 значение HIGH (кнопка нажата), то... = 16
+    delay(500);}
 
 void interruptTune(void) {
     readRegs();
@@ -52,11 +46,10 @@ void readRegs(void) {
     for(byte count = 0; count < 28; count++) {
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA); // активируем TWEA чтоб подтвердить прием байта
         while(!(TWCR & (1<<TWINT))); // ожидаем когда TWINT обнулится аппаратно
-        if(count == 0) statusRSSI = TWDR;
         if(count > 15) registers_FM[count - 16] = TWDR;} // в массив сохраняем только байты регистров 0х02 - 0х07
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);} // формируем "СТОП" установив TWSTO
-//запись в si4703 начинается с регистра 0x02. Но мы не должны писать в регистры 0x08 и 0x09
-void writeRegs(void) {
+
+void writeRegs(void) { // запись в si4703 начинается с регистра 0x02. Но мы не должны писать в регистры 0x08 и 0x09
     connect_TWI(0b00100000); // обращаемся к устройству 0х10 (адрес Si7703) и добавляем флаг записи (0) 10000|0
     for(byte count = 0; count < 12; count++) { // в si4703 запись возможна только в регистры 0x02 - 0х07 (12 байт)
         TWDR = registers_FM[count];
