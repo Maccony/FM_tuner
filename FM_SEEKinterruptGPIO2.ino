@@ -1,38 +1,41 @@
-// рабочий вариант выбор заданных станций через прерывание
 // PD0-RXD, PD1-TXD = Serial; PD2-INT0, PD3-INT1 = Interrupt; PC4-SDA, PC5-SCL = TWI;
 // ARDUINO PB1 - Si4702 RST, (PC5) A5 - SCLK, (PC4) A4 - SDIO
-// 24(звезда), 28(комеди радио), 36(дорожное радио), 40(комс. правда), 142(вести фм), 151(новое), 156(искатель), 163(европа), 171(ретро), 185(юмор), 196(авторадио), 200(дача)
 byte registers_FM[12]; // задаем массив для считывания регистров Si4703
-const byte channels[] = {24, 28, 36, 40, 142, 151, 156, 163, 171, 185, 196, 200};
-byte number = 0;
 
 void setup() { // функция setup выполняется один раз при загрузке
     DDRD &= ~(1 << DDD2); // в регистре направления DDRB назначаем вывод PD2 входным (INPUT), ставим бит №2 в LOW, для прерывания GPIO2 (STC)
     reset_Si4703(); // сброс si4703 (теперь регистры доступны на запись и чтение)
     TWBR=0x20; // задаем скорость передачи TWI (при 8 мГц получается 100 кГц)
-    readRegs();
-    registers_FM[10] |= (1<<7); // запуск внутреннего генератора, включение бита 15 -> XOSCEN (регистр 0х07h Test1)
-    writeRegs();
-    delay(500);
-    updateRegs(0, 0x40, 1, 0x01, 110); // регистр 0х02 бит D14 -> DMUTE=1 (Mute disable), бит D0 -> ENABLE=1 (Powerup Enable)
+    onBit(10, 7, 250); // регистр 0х07 бит XOSCEN[15]=1, запуск внутреннего генератора
+    onBit(1, 0, 110); // регистр 0х02 бит ENABLE[0]=1 (Powerup Enable)
+    onBit(0, 6, 110); // регистр 0х02 бит DMUTE[14]=1 (Mute disable)
     // регистр 0х05h младьший байт, биты 7:6 -> BAND = [00] (Band Select),биты 5:4 -> SPACE = [01] (Channel Spacing), 100 kHz для России, биты 3:0 -> VOLUME
     updateRegs(4, 0x08, 7, 0x1b, 110); // регистр 0х04h бит D11 -> DE = 1 (De-emphasis Russia 50 мкс).
     updateRegs(4, 0x48, 5, 0x04, 110); // регистр 0х04h бит D14 -> STCIEN=1 (interrupt), регистр 0х05h младьший байт, биты 3:2 -> GPIO2 = [01]
+    updateRegs(6, 0x0C, 9, 0x7F, 110); // регистр 0х05h бит SEEKTH[15:8]=0x0C, регистр 0х06h SKSNR[7:4]=0x07, SKCNT[3:0]=0x0F
     attachInterrupt(0, interruptTune, FALLING);} // прерывание GPIO2 от флага STC
 
 void loop() {
-    if((PIND & (1 << PIND4)) != 0) tuneChannel(); // если на входе PB4 значение HIGH (кнопка нажата), то... = 16
+    if((PIND & (1 << PIND4)) != 0) onBit(0, 0, 1); // если на входе PB4 значение HIGH (кнопка нажата), то... = 16
     // if (!(~PORTB&(1 << PB4))){}
     delay(500);}
 
 void interruptTune(void) { // функция реакции на прерывание GPIO2
     readRegs();
-    registers_FM[2] &= ~(1<<7); // очистим бит TUNE в регистре 03h когда частота настроена
+    registers_FM[0] &= ~(1<<0); // очистим бит SEEK в регистре 02h когда частота настроена
     writeRegs();}
 
-void tuneChannel(void) { // функция поиска нужной радиостанции
-    updateRegs(2, 0x80, 3, channels[number], 60); // регистр 0х03h бит D15 -> TUNE = 1; CHAN[9:0] -> нужный канал
-    number = number + 1;}
+void seekChannel(void) { // функция поиска нужной радиостанции
+    readRegs();
+    registers_FM[0] |= (1<<0); // регистр 0х02h установим бит SEEK=1
+    writeRegs();}
+
+void onBit(byte addrReg, byte numBit, byte timeState) {
+    readRegs();
+    registers_FM[addrReg] |= (1<<numBit);
+    writeRegs();
+    delay(timeState + timeState);
+}
 
 void updateRegs(byte numberByte1, byte valueByte1, byte numberByte2, byte valueByte2, byte delayByte) {
     readRegs();
